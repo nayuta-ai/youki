@@ -2,6 +2,7 @@ pub mod address;
 mod client;
 mod fake;
 pub mod link;
+pub mod serialize;
 mod traits;
 pub mod wrapper;
 
