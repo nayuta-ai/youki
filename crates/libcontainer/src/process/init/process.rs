@@ -346,8 +346,8 @@ pub fn container_init_process(
     }
 
     if let Some(network_devices) = ctx.linux.net_devices() {
-        setup_net_device(network_devices, main_sender, init_receiver).map_err(|err| {
-            tracing::error!(?err, "failed to setup net_device");
+        setup_network_devices(network_devices, main_sender, init_receiver).map_err(|err| {
+            tracing::error!(?err, "failed to setup network devices");
             err
         })?;
     }
@@ -869,7 +869,7 @@ fn sync_seccomp(
     Ok(())
 }
 
-fn setup_net_device(
+fn setup_network_devices(
     net_device: &HashMap<String, LinuxNetDevice>,
     main_sender: &mut channel::MainSender,
     init_receiver: &mut channel::InitReceiver,

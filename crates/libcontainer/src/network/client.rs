@@ -50,6 +50,8 @@ impl Client for NetlinkClient {
             ))
         })?;
 
+        tracing::debug!("{:?}", rx_packet);
+
         match handler.handle_payload(rx_packet.payload)? {
             NetlinkResponse::Success(response) => Ok(response),
             NetlinkResponse::Error(code) => Err(NetworkError::IO(std::io::Error::new(

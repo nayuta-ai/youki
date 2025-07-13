@@ -79,6 +79,8 @@ pub fn setup_network_device(
     let ns_link = link_client.get_by_name(&new_name)?;
     let ns_index = ns_link.header.index;
 
+    tracing::debug!("{:?}", ns_link);
+
     // Re-add the original IP addresses to the interface in the new namespace.
     // The kernel removes IP addresses when an interface is moved between network namespaces.
     for serialize_addr in serialize_addrs {
@@ -129,6 +131,8 @@ pub fn setup_network_device(
             addr_client.add(ns_index, ip, addr.header.prefix_len)?;
         }
     }
+
+    tracing::debug!("setup");
 
     link_client.set_up(ns_index)?;
     Ok(())

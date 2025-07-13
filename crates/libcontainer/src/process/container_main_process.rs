@@ -6,8 +6,8 @@ use nix::unistd::Pid;
 use oci_spec::runtime::{Linux, LinuxNamespaceType};
 
 use crate::network::network_device::dev_change_net_namespace;
-use crate::network::serialize::SerializableAddress;
 use crate::process::args::ContainerArgs;
+use crate::process::channel::{InitSender, MainReceiver};
 use crate::process::fork::{self, CloneCb};
 use crate::process::intel_rdt::setup_intel_rdt;
 use crate::process::{channel, container_intermediate_process};
@@ -163,11 +163,12 @@ pub fn container_main_process(container_args: &ContainerArgs) -> Result<(Pid, bo
     }
 
     if let Some(linux) = container_args.spec.linux() {
-        main_receiver.wait_for_network_setup_ready()?;
-
-        let addrs = setup_network_device(linux, init_pid)?;
-
-        init_sender.move_network_device(addrs)?;
+        setup_network_device(
+            linux, 
+            init_pid,
+            &mut main_receiver,
+            &mut init_sender,
+        )?;
     }
 
     // We don't need to send anything to the init process after this point, so
@@ -249,15 +250,16 @@ fn setup_mapping(config: &UserNamespaceConfig, pid: Pid) -> Result<()> {
 fn setup_network_device(
     linux: &Linux,
     init_pid: Pid,
-) -> Result<HashMap<String, Vec<SerializableAddress>>> {
-    let mut addrs_map = HashMap::new();
+    main_receiver: &mut MainReceiver,
+    init_sender: &mut InitSender,
+) -> Result<()> {
     // host network pods does not move network devices.
     if let Some(namespaces) = linux.namespaces() {
         if !namespaces
             .iter()
             .any(|ns| ns.typ() == LinuxNamespaceType::Network)
         {
-            return Ok(addrs_map);
+            return Ok(());
         }
 
         // get the namespace defined by the config and fall back
@@ -279,6 +281,8 @@ fn setup_network_device(
         // that were successfully moved before the failure occurred.
         // See: https://github.com/opencontainers/runtime-spec/blob/27cb0027fd92ef81eda1ea3a8153b8337f56d94a/config-linux.md#namespace-lifecycle-and-container-termination
         if let Some(devices) = linux.net_devices() {
+            main_receiver.wait_for_network_setup_ready()?;
+            let mut addrs_map = HashMap::new();
             for (name, net_dev) in devices {
                 let addrs = dev_change_net_namespace(
                     name.to_string(),
@@ -291,10 +295,11 @@ fn setup_network_device(
                 })?;
                 addrs_map.insert(name.clone(), addrs);
             }
+            init_sender.move_network_device(addrs_map)?;
         }
     }
 
-    Ok(addrs_map)
+    Ok(())
 }
 
 #[cfg(test)]

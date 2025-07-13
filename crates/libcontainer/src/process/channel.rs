@@ -69,7 +69,7 @@ impl MainSender {
 
     pub fn network_setup_ready(&mut self) -> Result<(), ChannelError> {
         tracing::debug!("notify network setup ready");
-        self.sender.send(Message::NetworkSetupReady)?;
+        self.sender.send(Message::SetupNetworkDeviceReady)?;
 
         Ok(())
     }
@@ -187,9 +187,9 @@ impl MainReceiver {
                 source: err,
             })?;
         match msg {
-            Message::NetworkSetupReady => Ok(()),
+            Message::SetupNetworkDeviceReady => Ok(()),
             msg => Err(ChannelError::UnexpectedMessage {
-                expected: Message::NetworkSetupReady,
+                expected: Message::SetupNetworkDeviceReady,
                 received: msg,
             }),
         }
