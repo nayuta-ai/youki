@@ -245,6 +245,15 @@ impl IntermediateSender {
         Ok(())
     }
 
+    pub fn move_network_device(
+        &mut self,
+        addrs: HashMap<String, Vec<SerializableAddress>>,
+    ) -> Result<(), ChannelError> {
+        self.sender.send(Message::MoveNetworkDevice(addrs))?;
+
+        Ok(())
+    }
+
     pub fn close(&self) -> Result<(), ChannelError> {
         self.sender.close()?;
 
@@ -276,6 +285,25 @@ impl IntermediateReceiver {
         }
     }
 
+    pub fn wait_for_move_network_device(
+        &mut self,
+    ) -> Result<HashMap<String, Vec<SerializableAddress>>, ChannelError> {
+        let msg = self
+            .receiver
+            .recv()
+            .map_err(|err| ChannelError::ReceiveError {
+                msg: "waiting for mapping request".to_string(),
+                source: err,
+            })?;
+        match msg {
+            Message::MoveNetworkDevice(addr) => Ok(addr),
+            msg => Err(ChannelError::UnexpectedMessage {
+                expected: Message::WriteMapping,
+                received: msg,
+            }),
+        }
+    }
+
     pub fn close(&self) -> Result<(), ChannelError> {
         self.receiver.close()?;
 
@@ -295,15 +323,6 @@ pub struct InitSender {
 impl InitSender {
     pub fn seccomp_notify_done(&mut self) -> Result<(), ChannelError> {
         self.sender.send(Message::SeccompNotifyDone)?;
-
-        Ok(())
-    }
-
-    pub fn move_network_device(
-        &mut self,
-        addrs: HashMap<String, Vec<SerializableAddress>>,
-    ) -> Result<(), ChannelError> {
-        self.sender.send(Message::MoveNetworkDevice(addrs))?;
 
         Ok(())
     }
@@ -333,25 +352,6 @@ impl InitReceiver {
             Message::SeccompNotifyDone => Ok(()),
             msg => Err(ChannelError::UnexpectedMessage {
                 expected: Message::SeccompNotifyDone,
-                received: msg,
-            }),
-        }
-    }
-
-    pub fn wait_for_move_network_device(
-        &mut self,
-    ) -> Result<HashMap<String, Vec<SerializableAddress>>, ChannelError> {
-        let msg = self
-            .receiver
-            .recv()
-            .map_err(|err| ChannelError::ReceiveError {
-                msg: "waiting for mapping request".to_string(),
-                source: err,
-            })?;
-        match msg {
-            Message::MoveNetworkDevice(addr) => Ok(addr),
-            msg => Err(ChannelError::UnexpectedMessage {
-                expected: Message::WriteMapping,
                 received: msg,
             }),
         }
@@ -532,7 +532,7 @@ mod tests {
         let mut addrs = HashMap::new();
         addrs.insert(device_name.clone(), vec![addr.clone()]);
 
-        let (sender, receiver) = &mut init_channel()?;
+        let (sender, receiver) = &mut intermediate_channel()?;
 
         match unsafe { unistd::fork()? } {
             unistd::ForkResult::Parent { child } => {

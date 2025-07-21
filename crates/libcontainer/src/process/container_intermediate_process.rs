@@ -1,8 +1,9 @@
+use std::collections::HashMap;
 use std::os::fd::FromRawFd;
 
 use libcgroups::common::CgroupManager;
 use nix::unistd::{close, write, Gid, Pid, Uid};
-use oci_spec::runtime::{LinuxNamespace, LinuxNamespaceType, LinuxResources};
+use oci_spec::runtime::{LinuxNamespace, LinuxNamespaceType, LinuxNetDevice, LinuxResources};
 use procfs::process::Process;
 
 use super::args::{ContainerArgs, ContainerType};
@@ -11,6 +12,7 @@ use super::fork::CloneCb;
 use super::init::process as init_process;
 use crate::error::MissingSpecError;
 use crate::namespaces::Namespaces;
+use crate::network::network_device::setup_network_device;
 use crate::process::{channel, cpu_affinity, fork};
 
 #[derive(Debug, thiserror::Error)]
@@ -33,6 +35,8 @@ pub enum IntermediateProcessError {
     MissingSpec(#[from] crate::error::MissingSpecError),
     #[error("CPU affinity error {0}")]
     CpuAffinity(#[from] cpu_affinity::CPUAffinityError),
+    #[error(transparent)]
+    Network(#[from] crate::network::NetworkError),
     #[error("other error")]
     Other(String),
 }
@@ -112,6 +116,18 @@ pub fn container_intermediate_process(
         // root in the user namespace likely is mapped to an non-privileged user
         // on the parent user namespace.
         command.set_id(Uid::from_raw(0), Gid::from_raw(0))?;
+    }
+
+    if let Some(network_namespace) = namespaces.get(LinuxNamespaceType::Network)? {
+        tracing::debug!("unshare network namespace");
+        namespaces.unshare_or_setns(network_namespace)?;
+    }
+
+    if let Some(network_devices) = linux.net_devices() {
+        setup_network_devices(network_devices, main_sender, inter_receiver).map_err(|err| {
+            tracing::error!(?err, "failed to setup network devices");
+            err
+        })?;
     }
 
     // set limits and namespaces to the process
@@ -283,6 +299,28 @@ fn apply_cgroups<
                 tracing::error!(?pid, ?err, ?init, "failed to apply cgroup");
                 IntermediateProcessError::Cgroup(err.to_string())
             })?;
+        }
+    }
+
+    Ok(())
+}
+
+fn setup_network_devices(
+    net_device: &HashMap<String, LinuxNetDevice>,
+    main_sender: &mut channel::MainSender,
+    intermediate_receiver: &mut channel::IntermediateReceiver,
+) -> Result<()> {
+    main_sender.network_setup_ready()?;
+
+    let addrs_map = intermediate_receiver.wait_for_move_network_device()?;
+    for (name, net_dev) in net_device {
+        if let Some(serialize_addrs) = addrs_map.get(name) {
+            setup_network_device(name.clone(), net_dev, serialize_addrs.clone()).map_err(
+                |err| {
+                    tracing::error!(?err, "failed to setup_network_device");
+                    err
+                },
+            )?;
         }
     }
 

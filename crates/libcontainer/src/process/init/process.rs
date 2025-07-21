@@ -9,8 +9,8 @@ use nix::sched::CloneFlags;
 use nix::sys::stat::Mode;
 use nix::unistd::{self, close, dup2, setsid, Gid, Uid};
 use oci_spec::runtime::{
-    IOPriorityClass, LinuxIOPriority, LinuxNamespaceType, LinuxNetDevice, LinuxSchedulerFlag,
-    LinuxSchedulerPolicy, Scheduler, Spec, User,
+    IOPriorityClass, LinuxIOPriority, LinuxNamespaceType, LinuxSchedulerFlag, LinuxSchedulerPolicy,
+    Scheduler, Spec, User,
 };
 
 use super::context::InitContext;
@@ -18,7 +18,6 @@ use super::error::InitProcessError;
 use super::Result;
 use crate::error::MissingSpecError;
 use crate::namespaces::Namespaces;
-use crate::network::network_device::setup_network_device;
 use crate::process::args::{ContainerArgs, ContainerType};
 use crate::process::channel;
 use crate::rootfs::RootFS;
@@ -345,13 +344,6 @@ pub fn container_init_process(
         tracing::warn!("seccomp not available, unable to set seccomp privileges!")
     }
 
-    if let Some(network_devices) = ctx.linux.net_devices() {
-        setup_network_devices(network_devices, main_sender, init_receiver).map_err(|err| {
-            tracing::error!(?err, "failed to setup network devices");
-            err
-        })?;
-    }
-
     // add HOME into envs if not exists
     if !ctx.envs.contains_key("HOME") {
         if let Some(dir_home) = utils::get_user_home(ctx.process.user().uid()) {
@@ -540,12 +532,14 @@ fn apply_rest_namespaces(
 ) -> Result<()> {
     namespaces
         .apply_namespaces(|ns_type| -> bool {
-            ns_type != CloneFlags::CLONE_NEWUSER && ns_type != CloneFlags::CLONE_NEWPID
+            ns_type != CloneFlags::CLONE_NEWUSER
+                && ns_type != CloneFlags::CLONE_NEWPID
+                && ns_type != CloneFlags::CLONE_NEWNET
         })
         .map_err(|err| {
             tracing::error!(
                 ?err,
-                "failed to apply rest of the namespaces (exclude user and pid)"
+                "failed to apply rest of the namespaces (exclude user, pid, and network)"
             );
             InitProcessError::Namespaces(err)
         })?;
@@ -864,28 +858,6 @@ fn sync_seccomp(
         // it. The fd is now duplicated to the main process and sent to seccomp
         // listener.
         let _ = unistd::close(fd);
-    }
-
-    Ok(())
-}
-
-fn setup_network_devices(
-    net_device: &HashMap<String, LinuxNetDevice>,
-    main_sender: &mut channel::MainSender,
-    init_receiver: &mut channel::InitReceiver,
-) -> Result<()> {
-    main_sender.network_setup_ready()?;
-
-    let addrs_map = init_receiver.wait_for_move_network_device()?;
-    for (name, net_dev) in net_device {
-        if let Some(serialize_addrs) = addrs_map.get(name) {
-            setup_network_device(name.clone(), net_dev, serialize_addrs.clone()).map_err(
-                |err| {
-                    tracing::error!(?err, "failed to setup_network_device");
-                    err
-                },
-            )?;
-        }
     }
 
     Ok(())

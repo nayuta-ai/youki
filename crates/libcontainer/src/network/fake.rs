@@ -1,10 +1,10 @@
+use std::collections::VecDeque;
+
 use netlink_packet_core::{NetlinkMessage, NetlinkPayload};
 use netlink_packet_route::RouteNetlinkMessage;
 
 use super::traits::{Client, NetlinkMessageHandler};
 use super::{NetlinkResponse, NetworkError, Result};
-
-use std::collections::VecDeque;
 
 pub enum FakeResponse {
     Success(RouteNetlinkMessage),
@@ -36,7 +36,8 @@ impl FakeNetlinkClient {
     ///
     /// * `error_message` - The error message to return
     pub fn set_failure(&mut self, error_message: String) {
-        self.expected_responses.push_back(FakeResponse::Error(error_message));
+        self.expected_responses
+            .push_back(FakeResponse::Error(error_message));
     }
 
     /// Sets multiple expected responses for multiple message handlers.
@@ -46,7 +47,8 @@ impl FakeNetlinkClient {
     /// * `responses` - Vector of RouteNetlinkMessage responses to return
     pub fn set_expected_responses(&mut self, responses: Vec<RouteNetlinkMessage>) {
         for response in responses {
-            self.expected_responses.push_back(FakeResponse::Success(response));
+            self.expected_responses
+                .push_back(FakeResponse::Success(response));
         }
     }
 
@@ -83,10 +85,12 @@ impl Client for FakeNetlinkClient {
                     let payload = NetlinkPayload::InnerMessage(msg);
                     match handler.handle_payload(payload) {
                         Ok(NetlinkResponse::Success(response)) => Ok(response),
-                        Ok(NetlinkResponse::Error(code)) => Err(NetworkError::IO(std::io::Error::new(
-                            std::io::ErrorKind::Other,
-                            format!("Netlink error: {}", code),
-                        ))),
+                        Ok(NetlinkResponse::Error(code)) => {
+                            Err(NetworkError::IO(std::io::Error::new(
+                                std::io::ErrorKind::Other,
+                                format!("Netlink error: {}", code),
+                            )))
+                        }
                         Ok(NetlinkResponse::Done) => Err(NetworkError::IO(std::io::Error::new(
                             std::io::ErrorKind::Other,
                             "Unexpected done message",

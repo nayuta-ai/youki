@@ -168,7 +168,7 @@ impl LinkClient {
 #[cfg(test)]
 mod tests {
     use serial_test::serial;
-    
+
     use super::*;
     use crate::network::fake::FakeNetlinkClient;
     use crate::network::wrapper::{create_network_client, ClientWrapper};

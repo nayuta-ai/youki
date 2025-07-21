@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::os::fd::AsRawFd;
+use std::os::unix::fs::MetadataExt;
 
 use netlink_packet_route::address::{AddressAttribute, AddressFlags, AddressMessage, AddressScope};
 use oci_spec::runtime::LinuxNetDevice;
@@ -20,10 +21,19 @@ pub fn dev_change_net_namespace(
     netns_path: String,
     device: &LinuxNetDevice,
 ) -> Result<Vec<SerializableAddress>> {
+    use std::fs;
+    let netns_inode = match fs::metadata(netns_path.clone()) {
+        Ok(m) => m.ino(),
+        Err(e) => {
+            tracing::debug!("failed to get metadata for {}: {}", netns_path, e);
+            0
+        }
+    };
     tracing::debug!(
-        "attaching network device {} to network namespace {}",
+        "attaching network device {} to network namespace {}, {}",
         name,
-        netns_path
+        netns_path,
+        netns_inode,
     );
 
     let mut link_client = LinkClient::new(create_network_client())?;

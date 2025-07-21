@@ -456,21 +456,24 @@ mod tests {
                 64,
             ),
         ];
-        let responses: Vec<_> = test_cases.iter().map(|(index, address, prefix_len)| {
-            let mut msg = AddressMessage::default();
-            msg.header.index = *index;
-            msg.header.prefix_len = *prefix_len;
-            msg.header.family = match address {
-                IpAddr::V4(_) => AddressFamily::Inet,
-                IpAddr::V6(_) => AddressFamily::Inet6,
-            };
-            msg.attributes.push(AddressAttribute::Address(*address));
-            msg.attributes.push(AddressAttribute::Local(*address));
-            if let IpAddr::V4(a) = address {
-                msg.attributes.push(AddressAttribute::Broadcast(*a));
-            }
-            RouteNetlinkMessage::NewAddress(msg)
-        }).collect();
+        let responses: Vec<_> = test_cases
+            .iter()
+            .map(|(index, address, prefix_len)| {
+                let mut msg = AddressMessage::default();
+                msg.header.index = *index;
+                msg.header.prefix_len = *prefix_len;
+                msg.header.family = match address {
+                    IpAddr::V4(_) => AddressFamily::Inet,
+                    IpAddr::V6(_) => AddressFamily::Inet6,
+                };
+                msg.attributes.push(AddressAttribute::Address(*address));
+                msg.attributes.push(AddressAttribute::Local(*address));
+                if let IpAddr::V4(a) = address {
+                    msg.attributes.push(AddressAttribute::Broadcast(*a));
+                }
+                RouteNetlinkMessage::NewAddress(msg)
+            })
+            .collect();
         fake_client.set_expected_responses(responses);
 
         let client_wrapper = ClientWrapper::Fake(fake_client);

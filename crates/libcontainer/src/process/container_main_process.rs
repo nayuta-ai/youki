@@ -7,7 +7,7 @@ use oci_spec::runtime::{Linux, LinuxNamespaceType};
 
 use crate::network::network_device::dev_change_net_namespace;
 use crate::process::args::ContainerArgs;
-use crate::process::channel::{InitSender, MainReceiver};
+use crate::process::channel::{IntermediateSender, MainReceiver};
 use crate::process::fork::{self, CloneCb};
 use crate::process::intel_rdt::setup_intel_rdt;
 use crate::process::{channel, container_intermediate_process};
@@ -107,6 +107,15 @@ pub fn container_main_process(container_args: &ContainerArgs) -> Result<(Pid, bo
     #[cfg(not(feature = "libseccomp"))]
     let (init_sender, init_receiver) = init_chan;
 
+    if let Some(linux) = container_args.spec.linux() {
+        setup_network_device(
+            linux,
+            intermediate_pid,
+            &mut main_receiver,
+            &mut inter_sender,
+        )?;
+    }
+
     // If creating a container with new user namespace, the intermediate process will ask
     // the main process to set up uid and gid mapping, once the intermediate
     // process enters into a new user namespace.
@@ -160,15 +169,6 @@ pub fn container_main_process(container_args: &ContainerArgs) -> Result<(Pid, bo
             need_to_clean_up_intel_rdt_subdirectory =
                 setup_intel_rdt(container_id, &init_pid, intel_rdt)?;
         }
-    }
-
-    if let Some(linux) = container_args.spec.linux() {
-        setup_network_device(
-            linux, 
-            init_pid,
-            &mut main_receiver,
-            &mut init_sender,
-        )?;
     }
 
     // We don't need to send anything to the init process after this point, so
@@ -251,7 +251,7 @@ fn setup_network_device(
     linux: &Linux,
     init_pid: Pid,
     main_receiver: &mut MainReceiver,
-    init_sender: &mut InitSender,
+    intermediate_sender: &mut IntermediateSender,
 ) -> Result<()> {
     // host network pods does not move network devices.
     if let Some(namespaces) = linux.namespaces() {
@@ -295,7 +295,7 @@ fn setup_network_device(
                 })?;
                 addrs_map.insert(name.clone(), addrs);
             }
-            init_sender.move_network_device(addrs_map)?;
+            intermediate_sender.move_network_device(addrs_map)?;
         }
     }
 
