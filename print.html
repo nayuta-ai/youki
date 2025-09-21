@@ -323,12 +323,12 @@ liboci-cli = { git = "https://github.com/containers/Youki.git" }
 <pre><code class="language-console"># in the youki directory
 
 # for rootless mode, which is default
-$ vagrant up
-$ vagrant ssh
+$ vagrant up default
+$ vagrant ssh default
 
 # or if you want to develop in rootful mode
-$ VAGRANT_VAGRANTFILE=Vagrantfile.root vagrant up
-$ VAGRANT_VAGRANTFILE=Vagrantfile.root vagrant ssh
+$ vagrant up rootful
+$ vagrant ssh rootful
 
 # in virtual machine
 $ cd youki
@@ -734,6 +734,7 @@ ENTRYPOINT ["wasm-module.wasm"]
 <tr><td>Eric Fang</td><td>Committer</td><td><a href="https://github.com/yihuaf">@yihuaf</a></td><td>Independent</td></tr>
 <tr><td>Sascha Grunert</td><td>Committer</td><td><a href="https://github.com/saschagrunert">@saschagrunert</a></td><td>Red Hat</td></tr>
 <tr><td>Jorge Prendes</td><td>Committer</td><td><a href="https://github.com/jprendes">@jprendes</a></td><td>Microsoft</td></tr>
+<tr><td>Yusuke Sakurai</td><td>Reviewer</td><td><a href="https://github.com/saku3">@saku3</a></td><td>3-shake</td></tr>
 </tbody></table>
 </div><div style="break-before: page; page-break-before: always;"></div><h1 id="code-of-conduct"><a class="header" href="#code-of-conduct">Code of Conduct</a></h1>
 <p>Youki follows the <a href="https://github.com/cncf/foundation/blob/main/code-of-conduct.md">CNCF Code of Conduct</a>.</p>
@@ -859,7 +860,8 @@ A Committer shouldn’t merge their own pull requests without approval by at lea
 <p>This documentation is created using mdbook and aims to provide a concise reference for users and developers of youki. For more information on mdbook itself, you can check out the <a href="https://rust-lang.github.io/mdBook/">mdbook documentation</a>.</p>
 <p>Please make sure that you update this documentation along with newly added features and resources that you found helpful while developing, so that it will be helpful for newcomers.</p>
 <p>Currently this documentation is hosted at <a href="https://youki-dev.github.io/youki/">https://youki-dev.github.io/youki/</a>, using GitHub pages. GitHub CI actions are used to automatically check if any files are changed in /docs on each push / PR merge to main branch, and if there are any changes, the mdbook is build and deployed to gh-pages. We use <a href="https://github.com/peaceiris/actions-mdbook">https://github.com/peaceiris/actions-mdbook</a> to build and then <a href="https://github.com/peaceiris/actions-gh-pages">https://github.com/peaceiris/actions-gh-pages</a> GitHub action to deploy the mdbook.</p>
-<p>When testing locally you can manually test the changes by running <code>mdbook serve</code> in the docs directory (after installing mdbook), which will temporarily serve the mdbook at <code>localhost:3000</code> by default. You can check the mdbook documentation for more information.</p>
+<p>When testing locally you can manually test the changes by running <code>mdbook serve</code> in the docs directory (after installing mdbook), which will temporarily serve the mdbook at <code>localhost:3000</code> by default. You can check the mdbook documentation for more information.<br />
+(If you are running inside a Dev Container, use <code>mdbook serve -n 0.0.0.0</code> instead)</p>
 <p>If you want to test it using gh-pages on your own fork, you can use following steps in the docs directory.</p>
 <pre><code class="language-console">git worktree prune
 # Do this if you are running this command first time after booting,
@@ -1134,7 +1136,7 @@ when the executor can't handle the workload.</p>
 <p>
 <pre><code class="language-rust no_run noplayground">use anyhow::{Context, Result};
 use oci_spec::runtime::{ProcessBuilder, Spec, SpecBuilder};
-use test_framework::{test_result, Test, TestGroup, TestResult};
+use test_framework::{Test, TestGroup, TestResult, test_result};
 
 use crate::utils::test_inside_container;
 use crate::utils::test_utils::CreateOptions;
