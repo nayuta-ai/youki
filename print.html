@@ -16,8 +16,8 @@
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-0392ca55.css">
+        <link rel="stylesheet" href="css/chrome-fc474251.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-a8a046aa.js";
+            window.path_to_searchindex_js = "searchindex-972db254.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-0bc41377.js"></script>
+        <script src="toc-96345dbb.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -223,6 +223,8 @@ youki is named after the Japanese word ‘youki’, which means ‘a container�
 <p>I have fun implementing this. In fact, this may be the most important.</p>
 </li>
 </ul>
+<hr>
+<p>Copyright youki a Series of LF Projects, LLC. For website terms of use, trademark policy and other project policies please see <a href="https://lfprojects.org/policies/">lfprojects.org/policies/</a>.</p>
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="user-documentation"><a class="header" href="#user-documentation">User Documentation</a></h1>
 <p>This section provides documentation of youki and the sub crates that the youki repo contains for the users. So if you are using youki as a low level container runtime, or using any of the crates in youki workspace as dependencies for your own project, this section might be helpful for you.</p>
@@ -299,7 +301,7 @@ If you installed it using rustup, the correct compiler version will be setup aut
 <p>Install the build dependencies and then run:</p>
 <pre><code class="language-console">just youki-dev # or youki-release
 </code></pre>
-<p>Install the build dependencies using your distribution’s package manger</p>
+<p>Install the build dependencies using your distribution’s package manager</p>
 <h4 id="debian-ubuntu-and-related-distributions-1"><a class="header" href="#debian-ubuntu-and-related-distributions-1">Debian, Ubuntu and related distributions</a></h4>
 <pre><code class="language-console">sudo apt-get install    \
       pkg-config        \
@@ -461,7 +463,7 @@ sudo ./youki list
 sudo ./youki delete tutorial_container
 </code></pre>
 <p>The example above shows how to run Youki in a ‘rootful’ way. To run it without root permissions, that is, in rootless mode, few changes are required.</p>
-<p>First, after exporting the rootfs from docker, while generating the config, you will need to pass the rootless flag. This will generate the config withe the options needed for rootless operation of the container.</p>
+<p>First, after exporting the rootfs from docker, while generating the config, you will need to pass the rootless flag. This will generate the config with the options needed for rootless operation of the container.</p>
 <pre><code class="language-console">../youki spec --rootless
 </code></pre>
 <p>After this, the steps are basically the same, except you do not need to use sudo while running youki.</p>
@@ -1454,11 +1456,11 @@ $ just test-runc-comp
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-c22b7243.js"></script>
 
         <!-- Custom JS scripts -->
 
