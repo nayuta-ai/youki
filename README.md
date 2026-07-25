@@ -103,6 +103,7 @@ The User and Developer Documentation for youki is hosted at [https://youki-dev.g
 # 🎬 Getting Started
 
 Local build is only supported on Linux.
+For macOS users, the repo ships a [Lima](#setting-up-lima-macos) configuration that provides a Fedora VM with all dependencies pre-installed.
 For other platforms, please use the [Vagrantfile](#setting-up-vagrant) that we have prepared. You can also spin up a fully preconfigured development environment in the cloud with [GitHub Codespaces](https://docs.github.com/en/codespaces/getting-started/quickstart).
 
 ## Requires
@@ -253,6 +254,31 @@ Go and node-tap are required to run integration tests. See the [opencontainers/r
 git submodule update --init --recursive
 just test-oci
 ```
+
+### Setting up Lima (macOS)
+
+[Lima](https://lima-vm.io/) provides a Linux VM on macOS without any additional virtualisation software. On Apple Silicon it uses Apple Virtualization Framework (near-native performance); on Intel Macs it falls back to QEMU.
+
+```bash
+# Install Lima
+brew install lima
+
+git clone git@github.com:youki-dev/youki.git
+cd youki
+
+# Create and provision the VM (downloads Fedora 42, installs deps + Rust toolchain)
+limactl start ./youki-lima.yaml --name youki
+
+# Open a shell in the VM — your host home directory is mounted at the same path
+limactl shell youki
+
+# In the VM shell
+cd /path/to/your/youki/clone   # same absolute path as on the host
+just youki-dev                 # or youki-release
+./youki --version
+```
+
+> **Intel Mac / macOS 12 or earlier:** Edit `youki-lima.yaml` and change `vmType: vz` to `vmType: qemu`, then remove the `vmOpts` block before running `limactl start`.
 
 ### Setting up Vagrant
 

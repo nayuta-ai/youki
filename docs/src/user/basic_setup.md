@@ -164,6 +164,55 @@ use liboci_cli::{...}
 
 ---
 
+### Using Lima to run youki on macOS (recommended for macOS users)
+
+[Lima](https://lima-vm.io/) is a lightweight Linux VM manager for macOS. On Apple Silicon it uses Apple Virtualization Framework, which gives near-native performance. On Intel Macs it falls back to QEMU.
+
+Install Lima via Homebrew:
+
+```console
+brew install lima
+```
+
+Then start the VM from the cloned youki directory:
+
+```console
+# in the youki directory
+limactl start ./youki-lima.yaml --name youki
+```
+
+This downloads a Fedora 42 image, installs all build dependencies, and sets up the Rust toolchain. The first run takes a few minutes. Once ready, open a shell in the VM:
+
+```console
+limactl shell youki
+```
+
+Your host home directory is mounted at the same path inside the VM, so you can cd directly into your clone:
+
+```console
+# in the Lima VM shell
+cd /path/to/your/youki/clone   # same path as on the host
+just youki-dev                 # or youki-release
+./youki --version
+```
+
+To stop and restart the VM:
+
+```console
+limactl stop youki
+limactl start youki
+```
+
+To delete the VM entirely:
+
+```console
+limactl delete youki
+```
+
+> **Note:** The `youki-lima.yaml` file defaults to `vmType: vz` (Apple Virtualization Framework). If you are on an Intel Mac or macOS 12 or earlier, change `vmType` to `qemu` and remove the `vmOpts.vz` block before starting.
+
+---
+
 ### Using Vagrant to run youki on non-Linux Platform
 
 As explained before, youki only support Linux, and to build/use it on non-Linux Platforms, you will need to use some kind of virtualization. The repo provides a Vagrantfile to do the required VM setup using Vagrant, which can be installed from [here](https://www.vagrantup.com/docs/installation).

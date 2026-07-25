@@ -1,0 +1,73 @@
+minimumLimaVersion: 2.0.0
+
+# Fedora 42 — same distro as Vagrantfile
+images:
+  - location: https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/x86_64/images/Fedora-Cloud-Base-Generic-42-1.1.x86_64.qcow2
+    arch: x86_64
+    digest: sha256:e401a4db2e5e04d1967b6729774faa96da629bcf3ba90b67d8d9cce9906bec0f
+  - location: https://download.fedoraproject.org/pub/fedora/linux/releases/42/Cloud/aarch64/images/Fedora-Cloud-Base-Generic-42-1.1.aarch64.qcow2
+    arch: aarch64
+    digest: sha256:e10658419a8d50231037dc781c3155aa94180a8c7a74e5cac2a6b09eaa9342b7
+
+cpus: 4
+memory: "4GiB"
+disk: "50GiB"
+
+# vmType selects the hypervisor backend.
+# "vz" uses Apple Virtualization Framework — recommended on Apple Silicon (macOS 13+).
+# Change to "qemu" for Intel Macs or macOS 12 and earlier.
+vmType: vz
+vmOpts:
+  vz:
+    # Rosetta 2 lets the VM run x86_64 binaries transparently on Apple Silicon,
+    # which is useful if any tooling or test helpers ship x86_64-only binaries.
+    rosetta:
+      enabled: true
+      binfmt: true
+
+# Mount the host home directory at the same path inside the VM.
+# After `limactl shell youki`, cd to wherever you cloned this repo.
+mounts:
+  - location: "~"
+    writable: true
+
+provision:
+  # System-level: install build dependencies (mirrors Vagrantfile deps)
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -euo pipefail
+      dnf update -y
+      dnf install -y \
+        git \
+        gcc \
+        make \
+        wget \
+        curl \
+        pkg-config \
+        systemd-devel \
+        dbus-devel \
+        elfutils-libelf-devel \
+        libseccomp-devel \
+        clang \
+        openssl-devel \
+        just
+
+  # User-level: install the Rust toolchain.
+  # rust-toolchain.toml in the repo pins the exact version used by CI.
+  - mode: user
+    script: |
+      #!/bin/bash
+      set -euo pipefail
+      curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
+      echo 'source "$HOME/.cargo/env"' >> ~/.bashrc
+      echo 'source "$HOME/.cargo/env"' >> ~/.bash_profile
+
+probes:
+  - script: |
+      #!/bin/bash
+      source "$HOME/.cargo/env" 2>/dev/null || true
+      rustc --version
+    hint: |
+      Waiting for Rust toolchain installation to complete.
+      To follow progress: limactl shell youki -- tail -f /var/log/cloud-init-output.log
